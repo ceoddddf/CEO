@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <meta name="theme-color" content="#000000">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="format-detection" content="telephone=no">
+    <title>CEO - Своя жизнь</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Inter:wght@300;400;600&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <style>
+        /* Общие стили */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html {
+            overflow-x: hidden;
+            width: 100%;
+            /* Убираем "резиновый" скролл на iOS */
+            overscroll-behavior: none;
+        }
+
+        body {
+            background-color: #000000;
+            color: #ffffff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            min-height: 100dvh;
+            padding: 20px;
+            font-family: 'Inter', sans-serif;
+            position: relative;
+            width: 100%;
+        }
+
+        /* Канвас для эффекта Матрицы */
+        #matrix-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            opacity: 0;
+            animation: canvasFadeIn 3s ease-out 0.5s forwards;
+            /* Отключаем события на канвасе */
+            pointer-events: none;
+        }
+
+        @keyframes canvasFadeIn {
+            from { opacity: 0; }
+            to { opacity: 0.25; }
+        }
+
+        /* Виньетка — затемнение по краям */
+        body::after {
+            content: '';
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: radial-gradient(circle at center, transparent 0%, transparent 40%, rgba(0, 0, 0, 0.9) 100%);
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        /* Обертка для карточки */
+        .card-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 450px;
+            z-index: 2;
+            animation: wrapperFadeIn 2.5s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes wrapperFadeIn {
+            0% {
+                opacity: 0;
+                transform: translateY(50px) scale(0.95);
+                filter: blur(15px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+                filter: blur(0);
+            }
+        }
+
+        /* Сама карточка профиля */
+        .profile-card {
+            position: relative;
+            /* Резервный фон на случай, если backdrop-filter не поддерживается */
+            background-color: rgba(5, 5, 5, 0.95);
+            width: 100%;
+            padding: 50px 35px;
+            border-radius: 24px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            box-shadow:
+                0 20px 60px rgba(0, 0, 0, 0.98),
+                inset 0 0 40px rgba(0, 0, 0, 0.8),
+                0 0 80px rgba(255, 255, 255, 0.02);
+            transition:
+                transform 1.2s cubic-bezier(0.16, 1, 0.3, 1),
+                box-shadow 1.2s cubic-bezier(0.16, 1, 0.3, 1),
+                border-color 1.2s cubic-bezier(0.16, 1, 0.3, 1),
+                background-color 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+            overflow: hidden;
+            animation: breathe 8s ease-in-out infinite;
+            /* Отключаем выделение текста при долгом тапе */
+            -webkit-user-select: none;
+            user-select: none;
+            /* Ускоряем отклик на тап */
+            touch-action: manipulation;
+        }
+
+        /* Поддержка backdrop-filter (только для тех, кто умеет) */
+        @supports (backdrop-filter: blur(12px)) or (-webkit-backdrop-filter: blur(12px)) {
+            .profile-card {
+                background-color: rgba(5, 5, 5, 0.88);
+                backdrop-filter: blur(12px);
+                -webkit-backdrop-filter: blur(12px);
+            }
+        }
+
+        @keyframes breathe {
+            0%, 100% {
+                box-shadow:
+                    0 20px 60px rgba(0, 0, 0, 0.98),
+                    inset 0 0 40px rgba(0, 0, 0, 0.8),
+                    0 0 80px rgba(255, 255, 255, 0.02);
+            }
+            50% {
+                box-shadow:
+                    0 20px 60px rgba(0, 0, 0, 0.98),
+                    inset 0 0 60px rgba(10, 10, 10, 1),
+                    0 0 100px rgba(255, 255, 255, 0.04);
+            }
+        }
+
+        /* Едва заметный белый луч сканирования */
+        .profile-card::before {
+            content: '';
+            position: absolute;
+            top: -50%; left: -50%;
+            width: 200%; height: 200%;
+            background: conic-gradient(
+                from 0deg,
+                transparent 0%,
+                transparent 92%,
+                rgba(255, 255, 255, 0.02) 96%,
+                rgba(255, 255, 255, 0.1) 98%,
+                rgba(255, 255, 255, 0.02) 99%,
+                transparent 100%
+            );
+            animation: rotateGlow 20s linear infinite;
+            opacity: 0;
+            transition: opacity 1.5s ease;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        /* Внутренний туман */
+        .profile-card::after {
+            content: '';
+            position: absolute;
+            bottom: -20%; left: -20%;
+            width: 140%; height: 60%;
+            background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.02) 0%, transparent 70%);
+            pointer-events: none;
+            animation: fogInside 15s ease-in-out infinite alternate;
+            z-index: 0;
+        }
+
+        @keyframes fogInside {
+            0% { transform: translateX(-10%) scale(1); opacity: 0.4; }
+            100% { transform: translateX(10%) scale(1.2); opacity: 0.8; }
+        }
+
+        /* Эффект при наведении / тапе */
+        .profile-card:hover,
+        .profile-card:active {
+            transform: translateY(-8px) scale(1.01);
+            border-color: rgba(255, 255, 255, 0.15);
+            background-color: rgba(8, 8, 8, 0.9);
+            box-shadow:
+                0 30px 80px rgba(0, 0, 0, 0.99),
+                inset 0 0 50px rgba(0, 0, 0, 0.9),
+                0 0 100px rgba(255, 255, 255, 0.05);
+        }
+
+        .profile-card:hover::before,
+        .profile-card:active::before {
+            opacity: 1;
+        }
+
+        @keyframes rotateGlow {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Заголовок CEO */
+        .profile-card h1 {
+            font-family: 'Cinzel', serif;
+            font-size: 3rem;
+            color: #e0e0e0;
+            margin-bottom: 5px;
+            letter-spacing: 12px;
+            text-transform: uppercase;
+            font-weight: 900;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+            transition:
+                text-shadow 1.5s cubic-bezier(0.16, 1, 0.3, 1),
+                color 1.5s cubic-bezier(0.16, 1, 0.3, 1),
+                letter-spacing 1.5s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            z-index: 1;
+            animation: letterReveal 4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes letterReveal {
+            0% {
+                opacity: 0;
+                letter-spacing: 50px;
+                filter: blur(20px);
+                transform: scale(0.9);
+            }
+            100% {
+                opacity: 1;
+                letter-spacing: 12px;
+                filter: blur(0);
+                transform: scale(1);
+            }
+        }
+
+        .profile-card:hover h1,
+        .profile-card:active h1 {
+            color: #ffffff;
+            text-shadow: 0 0 40px rgba(255, 255, 255, 0.5);
+            letter-spacing: 15px;
+        }
+
+        /* Подзаголовок */
+        .subtitle {
+            font-size: 0.75rem;
+            color: #444444;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            margin-bottom: 35px;
+            font-weight: 400;
+            transition:
+                color 1.5s cubic-bezier(0.16, 1, 0.3, 1),
+                letter-spacing 1.5s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            z-index: 1;
+        }
+
+        .profile-card:hover .subtitle,
+        .profile-card:active .subtitle {
+            color: #777777;
+            letter-spacing: 5px;
+        }
+
+        /* Фотография */
+        .profile-photo {
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 30px;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.95);
+            transition:
+                border-color 1.5s cubic-bezier(0.16, 1, 0.3, 1),
+                box-shadow 1.5s cubic-bezier(0.16, 1, 0.3, 1),
+                transform 1.5s cubic-bezier(0.16, 1, 0.3, 1),
+                filter 1.5s cubic-bezier(0.16, 1, 0.3, 1);
+            filter: grayscale(50%) contrast(1.2) brightness(0.8);
+            position: relative;
+            z-index: 1;
+            /* Запрет на "перетаскивание" фото пальцем */
+            -webkit-user-drag: none;
+            user-drag: none;
+            pointer-events: none;
+        }
+
+        .profile-card:hover .profile-photo,
+        .profile-card:active .profile-photo {
+            border-color: rgba(255, 255, 255, 0.35);
+            box-shadow: 0 0 40px rgba(255, 255, 255, 0.15);
+            transform: scale(1.03);
+            filter: grayscale(20%) contrast(1.15) brightness(1);
+        }
+
+        /* Описание */
+        .description {
+            font-size: 0.9rem;
+            line-height: 1.9;
+            color: #555555;
+            margin-bottom: 35px;
+            transition: color 1.5s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            z-index: 1;
+            font-weight: 300;
+        }
+
+        .profile-card:hover .description,
+        .profile-card:active .description {
+            color: #999999;
+        }
+
+        /* Кнопки соцсетей */
+        .social-links {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 16px 20px;
+            border-radius: 12px;
+            text-decoration: none;
+            font-family: 'Share Tech Mono', monospace;
+            font-weight: 400;
+            font-size: 0.9rem;
+            transition:
+                background-color 1.2s cubic-bezier(0.16, 1, 0.3, 1),
+                box-shadow 1.2s cubic-bezier(0.16, 1, 0.3, 1),
+                border-color 1.2s cubic-bezier(0.16, 1, 0.3, 1),
+                color 1.2s cubic-bezier(0.16, 1, 0.3, 1),
+                letter-spacing 1.2s cubic-bezier(0.16, 1, 0.3, 1),
+                transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+            letter-spacing: 3px;
+            position: relative;
+            overflow: hidden;
+            text-transform: uppercase;
+            -webkit-tap-highlight-color: transparent;
+            /* Убираем 300мс задержку при тапе на iOS */
+            touch-action: manipulation;
+            /* Курсор */
+            cursor: pointer;
+        }
+
+        .btn:active {
+            transform: scale(0.97);
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .btn-telegram {
+            background-color: rgba(12, 12, 12, 0.9);
+            color: #666666;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        .btn-telegram:hover,
+        .btn-telegram:active {
+            background-color: rgba(20, 20, 20, 0.95);
+            box-shadow: 0 0 40px rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 255, 255, 0.4);
+            color: #ffffff;
+            letter-spacing: 5px;
+        }
+
+        .btn-vk {
+            background-color: rgba(10, 10, 10, 0.9);
+            color: #5a5a5a;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-vk:hover,
+        .btn-vk:active {
+            background-color: rgba(18, 18, 18, 0.95);
+            box-shadow: 0 0 40px rgba(255, 255, 255, 0.12);
+            border-color: rgba(255, 255, 255, 0.35);
+            color: #e0e0e0;
+            letter-spacing: 5px;
+        }
+
+        /* =============================================
+           АДАПТАЦИЯ ПОД МОБИЛЬНЫЕ УСТРОЙСТВА
+           ============================================= */
+        @media (max-width: 480px) {
+            body {
+                padding: 12px;
+                align-items: flex-start;
+                padding-top: 30px;
+                padding-bottom: 30px;
+            }
+
+            .profile-card {
+                padding: 35px 22px;
+                border-radius: 18px;
+                transition:
+                    transform 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+                    box-shadow 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+                    border-color 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+                    background-color 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+            }
+
+            .profile-card h1 {
+                font-size: 2.2rem;
+                letter-spacing: 8px;
+                transition:
+                    text-shadow 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+                    color 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+                    letter-spacing 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+            }
+
+            .profile-card:hover h1,
+            .profile-card:active h1 {
+                letter-spacing: 10px;
+            }
+
+            .subtitle {
+                font-size: 0.65rem;
+                letter-spacing: 2px;
+                margin-bottom: 25px;
+                line-height: 1.6;
+                transition:
+                    color 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+                    letter-spacing 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+            }
+
+            .profile-photo {
+                width: 130px;
+                height: 130px;
+                margin-bottom: 25px;
+                border-width: 1px;
+                transition:
+                    border-color 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+                    box-shadow 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+                    transform 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+                    filter 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+            }
+
+            .description {
+                font-size: 0.85rem;
+                line-height: 1.7;
+                margin-bottom: 28px;
+                transition: color 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+            }
+
+            .social-links {
+                gap: 12px;
+            }
+
+            .btn {
+                padding: 15px 18px;
+                font-size: 0.8rem;
+                letter-spacing: 2px;
+                min-height: 50px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition:
+                    background-color 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+                    box-shadow 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+                    border-color 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+                    color 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+                    letter-spacing 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+                    transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            }
+
+            /* Отключаем тяжёлые анимации на мобильных */
+            .profile-card {
+                animation: none;
+            }
+
+            .profile-card::after {
+                animation: none;
+                opacity: 0.5;
+            }
+
+            body::after {
+                background: radial-gradient(circle at center, transparent 0%, transparent 50%, rgba(0, 0, 0, 0.85) 100%);
+            }
+        }
+
+        /* Очень маленькие экраны */
+        @media (max-width: 360px) {
+            .profile-card {
+                padding: 28px 18px;
+            }
+
+            .profile-card h1 {
+                font-size: 1.9rem;
+                letter-spacing: 6px;
+            }
+
+            .profile-photo {
+                width: 110px;
+                height: 110px;
+            }
+
+            .description {
+                font-size: 0.8rem;
+            }
+        }
+
+        /* Уважаем настройки пользователя: если анимации отключены — отключаем и у нас */
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="matrix-canvas"></canvas>
+
+    <div class="card-wrapper">
+        <div class="profile-card">
+            <h1>CEO</h1>
+            <div class="subtitle">Руководитель и основатель проекта «Своя жизнь»</div>
+
+            <img src="photo.jpg" alt="Фото CEO" class="profile-photo">
+
+            <p class="description">
+                Привет! Я — основатель и руководитель проекта «Своя жизнь».
+                Наша миссия — помогать людям строить собственный путь, находить свободу и реализовывать самые смелые идеи.
+                Всегда открыт к диалогу, сотрудничеству и новым знакомствам. Пишите в соцсети!
+            </p>
+
+            <div class="social-links">
+                <a href="https://t.me/monsterfromdream" target="_blank" rel="noopener noreferrer" class="btn btn-telegram">Telegram</a>
+                <a href="https://vk.ru/sergeypetrovttt3" target="_blank" rel="noopener noreferrer" class="btn btn-vk">ВКонтакте</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ЭФФЕКТ: Цифровой дождь из белых символов, рун и знаков
+        const canvas = document.getElementById('matrix-canvas');
+        const ctx = canvas.getContext('2d');
+
+        // Определяем мобильное устройство
+        const isMobile = window.matchMedia('(max-width: 768px)').matches ||
+                         /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+        const symbols = 'ᚠᚢᚦᚨᚱᚲᚷᚹᚺᚾᛁᛃᛇᛈᛉᛊᛏᛒᛖᛗᛚᛜᛞᛟABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789✦✧◆◇▲▼◈⬢⬣⌘⌬⎔';
+        const fontSize = isMobile ? 12 : 14;
+        const fps = isMobile ? 80 : 55;
+        const maxColumns = isMobile ? 50 : 200; // Ограничение колонок для слабых устройств
+
+        let columns = 0;
+        let drops = [];
+        let matrixInterval = null;
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            columns = Math.min(Math.floor(canvas.width / fontSize), maxColumns);
+            drops = [];
+            for (let i = 0; i < columns; i++) {
+                drops[i] = Math.random() * -100;
+            }
+        }
+
+        function drawMatrix() {
+            // Очистка с прозрачностью для эффекта затухания
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.08)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = fontSize + 'px "Share Tech Mono", monospace';
+
+            for (let i = 0; i < drops.length; i++) {
+                const text = symbols.charAt(Math.floor(Math.random() * symbols.length));
+                const x = i * fontSize;
+                const y = drops[i] * fontSize;
+
+                // Свечение только на десктопе
+                if (!isMobile) {
+                    ctx.shadowColor = '#ffffff';
+                    ctx.shadowBlur = 6;
+                }
+
+                ctx.fillText(text, x, y);
+
+                if (!isMobile) {
+                    ctx.shadowBlur = 0;
+                }
+
+                if (y > canvas.height && Math.random() > 0.975) {
+                    drops[i] = 0;
+                }
+                drops[i]++;
+            }
+        }
+
+        function startMatrix() {
+            if (matrixInterval) return;
+            matrixInterval = setInterval(drawMatrix, fps);
+        }
+
+        function stopMatrix() {
+            if (matrixInterval) {
+                clearInterval(matrixInterval);
+                matrixInterval = null;
+            }
+        }
+
+        // Инициализация
+        resizeCanvas();
+        startMatrix();
+
+        // Защита от частого вызова resize + поддержка поворота экрана
+        let resizeTimeout;
+        function handleResize() {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(resizeCanvas, 200);
+        }
+
+        window.addEventListener('resize', handleResize);
+        window.addEventListener('orientationchange', handleResize);
+
+        // Останавливаем анимацию, когда страница не видна (экономия батареи)
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                stopMatrix();
+            } else {
+                startMatrix();
+            }
+        });
+
+        // ФИКС для iOS: снимаем :hover после тапа
+        const profileCard = document.querySelector('.profile-card');
+        if (profileCard) {
+            profileCard.addEventListener('touchend', function() {
+                // Принудительно убираем hover-состояние
+                this.blur();
+            }, { passive: true });
+        }
+
+        // ФИКС: предотвращаем случайный зум двойным тапом на iOS
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', function(event) {
+            const now = Date.now();
+            if (now - lastTouchEnd <= 300) {
+                event.preventDefault();
+            }
+            lastTouchEnd = now;
+        }, { passive: false });
+
+        // ФИКС: пауза анимации при неактивной вкладке (для экономии батареи)
+        window.addEventListener('pagehide', stopMatrix);
+        window.addEventListener('pageshow', startMatrix);
+    </script>
+
+</body>
+</html>
